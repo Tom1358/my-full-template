@@ -14,16 +14,16 @@
 <body>
 
     <div class="center-form">
-        <input type="text" id="gh-username" value="octocat" oninput="fetchGitHubInformation()"/>
-        <div id="gh-user-data"></div>
-        <div id="gh-repo-data"></div>
+        <input type="text" id="gh-username" value="octocat" oninput="fetchGitHubInformation()"/> <!-- textbox that will call the function fetchGitHubInformation below when anything is input-->
+        <div id="gh-user-data"></div> <!-- presents user information -->
+        <div id="gh-repo-data"></div> <!-- presents repo information -->
     </div>
     
-    <script>
+    <script> // fetchGitHubInformation triggers promise - promise gathers data - data displayed on screen using functions userInformationHTML and repoInformationHTML
         
-        function userInformationHTML(user) {
-            return `
-                <h2>${user.name}
+        function userInformationHTML(user) { // 'USER' is the object (dictionary stuff) that's been returned from the GitHub API on line 80, including many methods, e.g. user's name, login name, links to their profile, etc
+            return //returning information from the API's object in the format you require
+                ` <h2>${user.name}
                     <span class="small-name">
                         (@<a href="${user.html_url}" target="_blank">${user.login}</a>
                     </span>
@@ -38,13 +38,14 @@
                 </div>`;
         }
 
-        function repoInformationHTML(repos) {
-            if (repos.length == 0) {
+        function repoInformationHTML(repos) { // Here, 'REPOS' is the object that's been returned from the promise on line 81 from the API that is being formatted
+            if (repos.length == 0) { // if array is empty, its length would be 0
                 return `<div class="clearfix repo-list">No repos!</div>`
             }
 
-            const listItemsHTML = repos.map(function(repo) {
-                return `
+            const listItemsHTML = repos.map(function(repo) { // if data is returned, it would be in an array.  map() method is run against repos array - map() works like a forEach, but it returns an array with the results of this function
+                return //contents of array produced my map() are returned as a <li> item
+                `
                 <li>
                     <a href="${repo.html_url}" target="_blank">${repo.name}</a>
                 </li>`;
@@ -57,37 +58,43 @@
                 <ul>
                     ${listItemsHTML.join("\n")}
                 </ul>
-            </div>`;
+            </div>`; // the join() method is used on the array produced by the map() method and joins everything with a new line, to prevent having to iterate through the new array again
         }
 
-        function fetchGitHubInformation(event) {
-            const username = $("#gh-username").val();
+        function fetchGitHubInformation(event) { // event argument (parameter) means whenever something happens, this function is called
+            $("#gh-user-data").html(""); // ensures that divs are cleared when function is called
+            $("#gh-user-data").html("");
+
+            const username = $("#gh-username").val(); // creates variable to hold the username that has been typed
             if (!username) {
-                $("#gh-user-data").html(`<h2>Please enter a GitHub username</h2>`);
-                return;
+                $("#gh-user-data").html(`<h2>Please enter a GitHub username</h2>`); // message displays if username field is empty
+                return; //returns out of function
             }
 
             $("#gh-user-data").html(
                 `<div id="loader">
                     <img src="/loader.gif" alt-"loading..."/>
                 </div>`
-            );
+            ); // if text has been inputted into field, loader displays
 
-            $.when(
-                $.getJSON(`https://api.github.com/users/${username}`),
-                $.getJSON(`https://api.github.com/users/${username}/repos`)
-            ).then(
-                function(firstResponse, secondResponse) {
-                    const userData = firstResponse[0];
+            $.when( //.when is a PROMISE - takes a function as its argument (parameter), and packs a response up into arrays (See line 84-85)
+                $.getJSON(`https://api.github.com/users/${username}`), // address of GitHub API, and as its endpoint, inserts, using jQuery, the username inputted in the textbox
+                $.getJSON(`https://api.github.com/users/${username}/repos`) // this address returns the information in JSON format
+            ).then( // when information is gotten in JSON format, then the following happens...
+                function(firstResponse, secondResponse) { //firstResponse is regarding the username - line 80, secondResponse is regarding the repos - line 81
+                    const userData = firstResponse[0]; // because the promise - line 79 - has its response as an array, we use the index [0] to access the first element of the array
                     const repoData = secondResponse[0];
                     $("#gh-user-data").html(userInformationHTML(userData));
                     $("#gh-repo-data").html(repoInformationHTML(repoData));
                 }, 
-                function(errorResponse) {
-                    if (errorResponse.status === 404) {
-                        $("#gh-user-data").html(`<h2>No info found for user ${username}</h2>`);
-                    } else {
-                        console.log(errorResponse);
+                function(errorResponse) { // if there's a problem with the promise, this function kicks in
+                    if (errorResponse.status === 404) { // if page cannot be found...
+                        $("#gh-user-data").html(`<h2>No info found for user ${username}</h2>`); 
+                    } else if ((errorResponse.status === 403)) { // if you're not allowed to access the page, and access is denied... (n.b. GitHub's API has a throttler stopping too many people using it at once)
+                        const resetTime = new Date(errorResponse.getResponseHeader('X-RateLimit-Reset')*1000); // date returned is stored inside headers of errorResponse.  This targets X-RateLimit-Reset...
+                        $("gh-user-data").html(`<h4>Too many requests, please wait until ${resetTime.toLocaleTimeString()}</h4>`); //... which is a header provided by GitHub to inform when the quota is reset, and the user can start using the API again.
+                    } else { // toLocaleTimeString() above is a method that picks up your location from your browser and prints it in your local time
+                        console.log(errorResponse); // if something else goes wrong, the error message is displayed
                         $("#gh-user-data").html(
                             `<h2>Error: ${errorResponse.responseJSON.message}</h2>`
                         )
@@ -95,6 +102,8 @@
                 }
             )
         };
+
+        $(document).ready(fetchGitHubInformation);
     </script>
 
 </body>
