@@ -2,36 +2,75 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello World</title>
-    <link rel="stylesheet" href="css/style.css">
+
+    <link rel="stylesheet" href="/style.css" type="text/css">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+    <title>Document</title>
 </head>
 <body>
-    <nav>
-        <ul>
-            <li><a href="index.html">Stream One</a></li>
-            <li><a href="stream-two.html">Stream Two</a></li>
-            <li><a href="stream-three.html">Stream Three</a></li>
-        </ul>
-    </nav>
-    <h1>Stream One</h1>
-    <div class="card">
-        <a href="https://en.wikipedia.org/wiki/HTML5" target="_blank">
-            <img src="https://rapidapi.com/blog/wp-content/uploads/2018/06/logo-2582748_640.png" alt="HTML5">
-            <h2>HTML5</h2>
-        </a>
+
+    <div class="center-form">
+        <input type="text" id="gh-username" value="octocat" oninput="fetchGitHubInformation()"/>
+        <div id="gh-user-data"></div>
+        <div id="gh-repo-data"></div>
     </div>
-    <div class="card">
-        <a href="https://en.wikipedia.org/wiki/CSS" target="_blank">
-            <img src="https://cdn.pixabay.com/photo/2017/08/05/11/16/logo-2582747_960_720.png" alt="CSS3">
-            <h2>CSS3</h2>
-        </a>
-    </div>
-    <div class="card">
-        <a href="https://en.wikipedia.org/wiki/JavaScript" target="_blank">
-            <img src="https://domstead.github.io/Portfolio/ImageFiles/javascriptLogo.png" alt="JavaScript">
-            <h2>JavaScript</h2>
-        </a>
-    </div>
+    
+    <script>
+        
+        function userInformationHTML(user) {
+            return `
+                <h2>${user.name}
+                    <span class="small-name">
+                        (@<a href="${user.html_url}" target="_blank">${user.login}</a>
+                    </span>
+                </h2>
+                <div class="gh-content">
+                    <div class="gh-avatar">
+                        <a href="${user.html_url}" target="_blank">
+                            <img src="${user.avatar_url}" width="80" height="80" alt="${user.login}"/>
+                        </a>
+                    </div> 
+                    <p>Followers: ${user.followers} - Following ${user.following} <br> Repos: ${user.public_repos}</p>
+                </div>`;
+        }
+
+        function fetchGitHubInformation(event) {
+            const username = $("#gh-username").val();
+            if (!username) {
+                $("#gh-user-data").html(`<h2>Please enter a GitHub username</h2>`);
+                return;
+            }
+
+            $("#gh-user-data").html(
+                `<div id="loader">
+                    <img src="/loader.gif" alt-"loading..."/>
+                </div>`
+            );
+
+            $.when(
+                $.getJSON(`https://api.github.com/users/${username}`)
+            ).then(
+                function(response) {
+                    const userData = response;
+                    $("#gh-user-data").html(userInformationHTML(userData));
+                }, 
+                function(errorResponse) {
+                    if (errorResponse.status === 404) {
+                        $("#gh-user-data").html(`<h2>No info found for user ${username}</h2>`);
+                    } else {
+                        console.log(errorResponse);
+                        $("#gh-user-data").html(
+                            `<h2>Error: ${errorResponse.responseJSON.message}</h2>`
+                        )
+                    }
+                }
+            )
+        };
+    </script>
+
 </body>
 </html>
